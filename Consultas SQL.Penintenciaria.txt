@@ -1,0 +1,127 @@
+CONSULTAS SQL (JOIN)
+1.SELECT i.nombre, i.apellido AS Nom_Apelli, c.numero AS Numero_Celda
+FROM Interno AS i
+JOIN Celda AS c
+ON i.Celda_idCelda = c.idCelda;
+2.SELECT i.nombre AS Interno, v.nombre_visitante AS Visitante, v.parentesco
+FROM Interno AS i
+JOIN Visita AS v
+ON i.idInterno = v.Interno_idInterno;
+3.SELECT i.nombre AS Interno, d.nombre AS Delito
+FROM Interno As i
+JOIN Interno_has_delito As ind 
+ON i.idInterno = ind.Interno_idInterno
+JOIN Delito As d 
+ON ind.Delito_idDelito = d.idDelito;
+4.SELECT rc.idHistorial_Conducta AS Registro, s.motivo, s.duracion_dias AS Duracion
+FROM Registro_Conducta AS rc
+JOIN Sancion AS s
+ON rc.Sancion_idSancion = s.idSancion;
+5.SELECT p.nombre AS Pabellon,
+       COUNT(i.idInterno) AS TotalInternos
+FROM Pabellon AS p
+JOIN Celda AS c 
+  ON p.idPabellon = c.Pabellon_idPabellon
+JOIN Interno AS i 
+  ON c.idCelda = i.Celda_idCelda
+GROUP BY p.nombre;
+6.SELECT 
+    A.nombre AS Actividad, 
+    A.tipo AS TipoActividad, 
+    E.nombre || ' ' || E.apellido AS Empleado
+FROM Actividades AS A
+JOIN Actividades_has_Empleado AS AE 
+    ON A.idActividades = AE.Actividades_idActividades 
+JOIN Empleado AS E 
+    ON AE.Empleado_idEmpleado = E.idEmpleado;
+7.SELECT 
+    i.nombre || ' ' || i.apellido AS Preso,
+    d.nombre AS Delito,
+    d.gravedad
+FROM Interno AS i
+JOIN Interno_has_Delito AS ind
+    ON i.idInterno = ind.Interno_idInterno
+JOIN Delito AS d
+    ON ind.Delito_idDelito = d.idDelito;
+8.SELECT 
+    i.nombre || ' ' || i.apellido AS Preso,
+    s.motivo,
+    s.duracion_dias
+FROM Sancion AS s
+JOIN Registro_Conducta AS rc
+    ON s.idSancion = rc.Sancion_idSancion
+JOIN Interno AS i
+    ON rc.Interno_idInterno = i.idInterno
+WHERE s.duracion_dias = (
+    SELECT MAX(duracion_dias)
+    FROM Sancion
+);
+CONSULTAS SQL SUBCONSULTAS
+9.SELECT d.nombre
+FROM Delito AS d
+WHERE d.idDelito NOT IN (
+    SELECT DISTINCT Delito_idDelito
+    FROM Interno_has_Delito
+);
+10.SELECT 
+    e.idEmpleado,
+    e.nombre || ' ' || e.apellido AS Empleado,
+    e.puesto,
+    e.sueldo
+FROM Empleado AS e
+WHERE e.sueldo > (
+    SELECT AVG(e2.sueldo)
+    FROM Empleado AS e2
+    WHERE e2.puesto = e.puesto
+);
+11.SELECT c.idCelda, c.Guardia_idGuardia 
+FROM Celda As c
+WHERE c.idCelda IN ( 
+SELECT Celda_idCelda 
+FROM Interno As i 
+GROUP BY i.Celda_idCelda 
+HAVING COUNT(i.idInterno) > 3 );
+12.SELECT 
+    i.idInterno,
+    i.nombre || ' ' || i.apellido AS Internos,
+    i.Celda_idCelda,
+    (
+        SELECT COUNT(rc.idHistorial_Conducta)
+        FROM Registro_Conducta AS rc
+        WHERE rc.Interno_idInterno = i.idInterno
+    ) AS TotalRegistrosConducta
+FROM Interno AS i
+ORDER BY i.Celda_idCelda, Internos;
+13.SELECT 
+    I.nombre || ' ' || I.apellido AS NombreInterno,
+    C.idCelda,
+    P.nombre AS Pabellon,
+    D.nombre AS Delito,
+    D.gravedad
+FROM Interno AS I
+JOIN Celda AS C 
+    ON I.Celda_idCelda = C.idCelda
+JOIN Guardia AS G 
+    ON C.Guardia_idGuardia = G.idGuardia
+JOIN Pabellon AS P 
+    ON G.Pabellon_idPabellon = P.idPabellon
+JOIN Interno_has_Delito AS Ind
+    ON I.idInterno = Ind.Interno_idInterno
+JOIN Delito AS D 
+    ON Ind.Delito_idDelito = D.idDelito
+WHERE D.gravedad = 'Baja'
+ORDER BY P.nombre, I.apellido;
+
+1. Creación de la tabla Pabellón 
+CREATE TABLE Pabellon ( idPabellon INT PRIMARY KEY, 
+nombre VARCHAR(45), 
+capacidad INT,
+tipo VARCHAR(45) ); 
+
+2. Creación de la tabla Celda 
+CREATE TABLE Celda ( idCelda INT PRIMARY KEY, 
+nombre VARCHAR(45), 
+capacidad INT, 
+Guardia_idGuardia INT,
+FOREIGN KEY (Guardia_idGuardia) REFERENCES Guardia(idGuardia)
+
